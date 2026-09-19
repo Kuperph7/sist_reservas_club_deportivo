@@ -1,0 +1,34 @@
+# Entorno virtual
+.venv/
+venv/
+
+# Variables de entorno / credenciales
+.env
+
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+
+# Caché de tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Archivos de IDE/editor
+.vscode/
+.idea/
+
+# Archivos temporales
+*.log
+*.tmp
+*~
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Base de datos local, solo si usan SQLite
+*.db
+*.sqlite
+*.sqlite3
