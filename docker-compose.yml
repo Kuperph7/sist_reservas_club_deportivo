@@ -1,0 +1,22 @@
+services:
+
+  db:
+    image: mysql:8.4
+    container_name: club_reservas_db
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Definir DB_ROOT_PASSWORD en .env}
+      MYSQL_DATABASE: ${DB_NAME:-club_reservas}
+      MYSQL_USER: ${DB_USER:-club_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Definir DB_PASSWORD en .env}
+
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init_db.sql:/docker-entrypoint-initdb.d/01-init_db.sql:ro
+      - ./db/seed_data.sql:/docker-entrypoint-initdb.d/02-seed_data.sql:ro
+
+volumes:
+  mysql_data:

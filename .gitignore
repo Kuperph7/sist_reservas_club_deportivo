@@ -4,6 +4,8 @@ venv/
 
 # Variables de entorno / credenciales
 .env
+.env.*
+!.env.example
 
 
 # Caché de Python
