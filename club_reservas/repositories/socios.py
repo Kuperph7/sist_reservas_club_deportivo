@@ -11,7 +11,7 @@ def _fetchone(connection, query, params=()):
 def get_socio_by_id(connection, socio_id):
     return _fetchone(
         connection,
-        "SELECT id, nombre, email, activo FROM socios WHERE id = %s",
+        "SELECT * FROM socios WHERE id = %s",
         (socio_id,),
     )
 
@@ -49,7 +49,7 @@ def update_socio(connection, socio_id, changes):
 
 
 #Aca listamos los socios con filtros por nombre y estado, tambien contamos el total
-def list_all(connection, nombre, activo, limit, offset):
+def list_all_socios(connection, nombre, activo, limit, offset):
     conditions = []
     params = []
 
@@ -70,7 +70,7 @@ def list_all(connection, nombre, activo, limit, offset):
     cursor = connection.cursor(dictionary=True)
     try:
         cursor.execute(
-            f"SELECT id, nombre, email, activo FROM socios{where} "
+            f"SELECT * FROM socios{where} "
             "ORDER BY id ASC LIMIT %s OFFSET %s",
             tuple([*params, limit, offset]),
         )
