@@ -81,3 +81,10 @@ def list_all_socios(connection, nombre, activo, limit, offset):
     return socios, count_row["total"]
 
 
+#Buscamos el socio por su email para validar duplicados
+def get_socio_by_email(connection, email):
+    return_fetchone(
+        connection,
+        "SELECT * FROM socios WHERE LOWER(email) = %s",
+        (email.lower().strip(),)
+    )
