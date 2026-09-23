@@ -103,4 +103,4 @@ def delete_cancha(connection, cancha_id):
     try:
         cursor.execute("DELETE FROM canchas WHERE id = %s",(cancha_id,))
     finally:
-        cursor.close()
+        cursor.close(
