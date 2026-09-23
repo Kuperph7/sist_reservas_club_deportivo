@@ -12,8 +12,20 @@ def get_socio_by_id(connection, socio_id):
     return _fetchone(
         connection,
         "SELECT * FROM socios WHERE id = %s",
-        (socio_id,),
+        (socio_id),
     )
+
+
+
+#Agarramos el socio por el mail
+def get_socio_by_email(connection, email):
+    return _fetchone(
+        connection,
+        "SELECT * FROM socios WHERE email = %s",
+        (email),
+    )
+
+
 
 #Creamos al socio nuevo
 def create_socio(connection, nombre, email):
