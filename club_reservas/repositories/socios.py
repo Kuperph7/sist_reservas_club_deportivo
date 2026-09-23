@@ -91,5 +91,3 @@ def list_all_socios(connection, nombre, activo, limit, offset):
         cursor.close()
 
     return socios, count_row["total"]
-
-

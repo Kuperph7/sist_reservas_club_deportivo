@@ -86,3 +86,21 @@ def list_all_canchas(connection, nombre, activa, id_deporte, techada, limit, off
         cursor.close()
 
     return canchas, count_row["total"]
+
+# Verifica si la cancha tiene al menos una reserva asociada (para validar el DELETE)
+def has_reservas(connection, cancha_id):
+    cursor = connection.cursor()
+    try:
+        cursor.execute("SELECT 1 FROM reservas WHERE id_cancha = %s LIMIT 1 ",(cancha_id,))
+        return cursor.fetchone() is not None
+    finally:
+        cursor.close()
+
+    
+# Elimina la cancha de la base de datos
+def delete_cancha(connection, cancha_id):
+    cursor = connection.cursor()
+    try:
+        cursor.execute("DELETE FROM canchas WHERE id = %s",(cancha_id,))
+    finally:
+        cursor.close(
