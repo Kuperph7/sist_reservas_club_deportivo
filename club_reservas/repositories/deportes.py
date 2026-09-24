@@ -1,16 +1,9 @@
-#Devuelve la primera fila como un diccionario, osea clave:valor o none si no se encontro resultado
-def _fetchone(connection, query, params=()):
-    cursor = connection.cursor(dictionary=True)
-    try:
-        cursor.execute(query, params)
-        return cursor.fetchone()
-    finally:
-        cursor.close()
+from sqlalchemy import text
 
-#Agarramos el sodeportecio por su id para ver todos sus datos
-def get_deporte_by_id(connection, socio_id):
-    return _fetchone(
-        connection,
-        "SELECT * FROM deportes WHERE id = %s",
-        (socio_id,),
+#Agarramos el deporte por su id para ver todos sus datos
+def get_deporte_by_id(connection, deporte_id):
+    result = connection.execute(
+        text("SELECT * FROM deportes WHERE id = :deporte_id"),
+        {"deporte_id": deporte_id},
     )
+    return result.mappings().first()
