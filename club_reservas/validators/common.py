@@ -1,4 +1,4 @@
-from app.errors import ApiError
+from club_reservas.exeptions import ApiError
 
 #Error de validacion simple por siu algun parametro es erroneo
 def validation_error(description):
@@ -53,3 +53,12 @@ def parse_boolean(value, name):
     if value == "false":
         return False
     validation_error(f"El parámetro '{name}' solo admite true o false")
+
+
+#Rechazamos los campos desconocidos, para que no manden datos que no correspondan
+def reject_unknown_fields(data, allowed):
+    for field in data:
+        if field not in allowed:
+            validation_error(
+                f"Campo desconocido: {field}"
+            )

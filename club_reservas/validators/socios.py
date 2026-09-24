@@ -1,11 +1,12 @@
 #importamos los validadores generales y tambien el re para poder usar las regex
 import re
-from app.validators.common import (
-    parse_boolean,
-    parse_non_negative_integer,
-    reject_unknown_fields,
+from club_reservas.validators.common import (
     validation_error,
+    parse_non_negative_integer,
+    parse_boolean,
+    reject_unknown_fields
 )
+
 
 #Estos son unos validadores especificos segun las tablas de socios
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -44,10 +45,10 @@ def _normalize_email(value):
 
 #Validamos que la creacion de datos sea correcta y que vengan todos los campos necesarios (se mostraron los validadores arriba)
 def validate_create(data):
-    reject_unknown_fields(data, CREATE_FIELDS)
-    missing = sorted(CREATE_FIELDS - set(data))
-    if missing:
-        validation_error(f"Campos obligatorios faltantes: {', '.join(missing)}")
+    reject_unknown_fields(
+        data,
+        ["nombre", "email"],
+    )
     return {
         "nombre": _normalize_name(data["nombre"]),
         "email": _normalize_email(data["email"]),
@@ -56,10 +57,14 @@ def validate_create(data):
 #Aca estamos haciendo lo mismo que ocn el create pero para la actualizacion de los datos, corroboramos que todos sean correctos mediante
 #las normalizaciones previamente explicadas
 def validate_update(data):
-    reject_unknown_fields(data, UPDATE_FIELDS)
+    
     if not data:
         validation_error("El cuerpo de la actualización no puede estar vacío")
 
+    reject_unknown_fields(
+        data,
+        ["nombre", "email", "activo"],
+    )
     normalized = {}
     if "nombre" in data:
         normalized["nombre"] = _normalize_name(data["nombre"])
@@ -73,7 +78,12 @@ def validate_update(data):
 
 #Aca validamos los filtros y el paginado de los listados
 def validate_list(args):
-    reject_unknown_fields(args, LIST_FIELDS)
+
+    reject_unknown_fields(
+        args,
+        ["nombre","activo","_limit","_offset",],
+    )
+
     for name in args:
         if len(args.getlist(name)) != 1:
             validation_error(f"El parámetro '{name}' no puede repetirse")
@@ -82,10 +92,10 @@ def validate_list(args):
     return {
         "nombre": nombre.strip() if nombre is not None else None,
         "activo": parse_boolean(args.get("activo"), "activo"),
-        "_limit": parse_non_negative_integer(
+        "_limit":parse_non_negative_integer(
             args.get("_limit"), "_limit", 10, 1, 100
         ),
-        "_offset": parse_non_negative_integer(
+        "_offset":parse_non_negative_integer(
             args.get("_offset"), "_offset", 0, 0
         ),
     }
