@@ -1,9 +1,9 @@
-from sqlalchemy import text
+import sqlalchemy
 
 #Creamos la cancha nueva
 def create_cancha(connection, nombre, id_deporte, precio_hora, activa=True, techada=False):
     result = connection.execute(
-        text(
+        sqlalchemy.text(
             "INSERT INTO canchas (nombre, id_deporte, precio_hora, activa, techada) "
             "VALUES (:nombre, :id_deporte, :precio_hora, :activa, :techada)"
         ),
@@ -20,7 +20,7 @@ def create_cancha(connection, nombre, id_deporte, precio_hora, activa=True, tech
 #Agarramos la cancha por su id para ver todos sus datos
 def get_cancha_by_id(connection, cancha_id):
     result = connection.execute(
-        text("SELECT * FROM canchas WHERE id = :cancha_id"),
+        sqlalchemy.text("SELECT * FROM canchas WHERE id = :cancha_id"),
         {"cancha_id": cancha_id},
     )
     return result.mappings().first()
@@ -37,7 +37,7 @@ def update_cancha(connection, cancha_id, changes):
 
     params["cancha_id"] = cancha_id
     result = connection.execute(
-        text(
+        sqlalchemy.text(
             f"UPDATE canchas SET {', '.join(assignments)} "
             "WHERE id = :cancha_id"
         ),
@@ -67,14 +67,14 @@ def list_all_canchas(connection, nombre, activa, id_deporte, techada, limit, off
 
     where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
     count_result = connection.execute(
-        text(f"SELECT COUNT(*) AS total FROM canchas{where}"),
+        sqlalchemy.text(f"SELECT COUNT(*) AS total FROM canchas{where}"),
         params,
     )
     count_row = count_result.mappings().first()
 
     list_params = {**params, "limit": limit, "offset": offset}
     result = connection.execute(
-        text(
+        sqlalchemy.text(
             f"SELECT * FROM canchas{where} "
             "ORDER BY id ASC LIMIT :limit OFFSET :offset"
         ),
@@ -84,11 +84,50 @@ def list_all_canchas(connection, nombre, activa, id_deporte, techada, limit, off
 
     return canchas, count_row["total"]
 
+#Aca listamos las canchas que no tengan reservas durante el horario que ingrese el usuario
+def consulta_disponibilidad(connection, fecha_hora_inicio, fecha_hora_fin, id_deporte, limit, offset):
+    conditions = []
+    params = {}
+
+    conditions.append("fecha_hora_inicio >= :fecha_hora_inicio")
+    params["fecha_hora_inicio"] = fecha_hora_inicio
+
+    conditions.append(
+        "fecha_hora_inicio < DATE_ADD(:fecha_hora_fin, INTERVAL 1 DAY)"
+    )
+    params["fecha_hora_fin"] = fecha_hora_fin
+
+    conditions.append("activa = :activa")
+    params["activa"] = True
+
+    if id_deporte is not None:
+        conditions.append["id_deporte = :id_deporte"]
+        params["id_deporte"] = id_deporte
+
+        
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    count_result = connection.execute(
+        sqlalchemy.text(f"SELECT COUNT(*) AS total FROM canchas{where}"),
+        params,
+    )
+    count_row = count_result.mappings().first()
+
+    list_params = {**params, "limit": limit, "offset": offset}
+    result = connection.execute(
+        sqlalchemy.text(
+            f"SELECT * FROM canchas{where} "
+            "ORDER BY id ASC LIMIT :limit OFFSET :offset"
+        ),
+        list_params,
+    )
+    canchas = result.mappings().all()
+
+    return canchas, count_row["total"]
 
 # Verifica si la cancha tiene al menos una reserva asociada.
 def has_reservas(connection, cancha_id):
     result = connection.execute(
-        text("SELECT 1 FROM reservas WHERE id_cancha = :cancha_id LIMIT 1"),
+        sqlalchemy.text("SELECT 1 FROM reservas WHERE id_cancha = :cancha_id LIMIT 1"),
         {"cancha_id": cancha_id},
     )
     return result.first() is not None
@@ -97,7 +136,7 @@ def has_reservas(connection, cancha_id):
 # Elimina una cancha por su ID.
 def delete_cancha(connection, cancha_id):
     result = connection.execute(
-        text("DELETE FROM canchas WHERE id = :cancha_id"),
+        sqlalchemy.text("DELETE FROM canchas WHERE id = :cancha_id"),
         {"cancha_id": cancha_id},
     )
     return result.rowcount
