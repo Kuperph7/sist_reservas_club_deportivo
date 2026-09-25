@@ -43,15 +43,17 @@ def error_response(
         status,
     )
 
+#Maneja los errores con el formato json
+def handle_api_error(error):
+    return error_response(
+        error.status,
+        error.code,
+        error.message,
+        error.description,
+        error.level,
+    )
 
 # Le indica a Flask qué hacer cuando se lanza ApiError
 def register_error_handlers(app):
-    @app.errorhandler(ApiError)
-    def handle_api_error(error):
-        return error_response(
-            error.status,
-            error.code,
-            error.message,
-            error.description,
-            error.level,
-        )
+    app.register_error_handler(ApiError, handle_api_error)
+    
