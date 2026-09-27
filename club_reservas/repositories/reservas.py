@@ -1,11 +1,24 @@
 from sqlalchemy import text
 
-#Creamos la reserva nueva
-def create_reserva(connection, id_socio , id_cancha , fecha_hora_inicio, fecha_hora_fin, precio_hora, precio_total):
+
+def create_reserva(
+    connection,
+    id_socio,
+    id_cancha,
+    fecha_hora_inicio,
+    fecha_hora_fin,
+    precio_hora,
+    precio_total,
+):
     result = connection.execute(
         text(
-            "INSERT INTO reservas (id_socio, id_cancha, fecha_hora_inicio, fecha_hora_fin, estado, precio_hora, precio_total) "
-            "VALUES (:id_socio, :id_cancha, :fecha_hora_inicio, :fecha_hora_fin, 'confirmada', :precio_hora, :precio_total)"
+            "INSERT INTO reservas ("
+            "id_socio, id_cancha, fecha_hora_inicio, fecha_hora_fin, "
+            "estado, precio_hora, precio_total"
+            ") VALUES ("
+            ":id_socio, :id_cancha, :fecha_hora_inicio, :fecha_hora_fin, "
+            "'confirmada', :precio_hora, :precio_total"
+            ")"
         ),
         {
             "id_socio": id_socio,
@@ -18,7 +31,7 @@ def create_reserva(connection, id_socio , id_cancha , fecha_hora_inicio, fecha_h
     )
     return result.lastrowid
 
-#Agarramos la reserva por su id para ver todos sus datos
+
 def get_reserva_by_id(connection, reserva_id):
     result = connection.execute(
         text("SELECT * FROM reservas WHERE id = :reserva_id"),
@@ -26,32 +39,118 @@ def get_reserva_by_id(connection, reserva_id):
     )
     return result.mappings().first()
 
-#Recorremos todos los campos que vamos a modificar y revisamos cuales son esos cambios, dependiendo de si encuentra la coincidencia  
-#sabemos que campo se va a modificar
-def update_reserva(connection, reserva_id, changes):
-    assignments = []
-    params = {}
-    for field in ("estado",):
-        if field in changes:
-            assignments.append(f"{field} = :{field}")
-            params[field] = changes[field]
 
-    params["reserva_id"] = reserva_id
+def get_socio_for_update(connection, socio_id):
+    result = connection.execute(
+        text("SELECT * FROM socios WHERE id = :socio_id FOR UPDATE"),
+        {"socio_id": socio_id},
+    )
+    return result.mappings().first()
+
+
+def get_cancha_for_update(connection, cancha_id):
+    result = connection.execute(
+        text("SELECT * FROM canchas WHERE id = :cancha_id FOR UPDATE"),
+        {"cancha_id": cancha_id},
+    )
+    return result.mappings().first()
+
+
+def has_reserva_overlap(
+    connection,
+    cancha_id,
+    fecha_hora_inicio,
+    fecha_hora_fin,
+):
     result = connection.execute(
         text(
-            f"UPDATE reservas SET {', '.join(assignments)} "
+            "SELECT 1 FROM reservas "
+            "WHERE id_cancha = :cancha_id "
+            "AND estado = 'confirmada' "
+            "AND fecha_hora_inicio < :fecha_hora_fin "
+            "AND fecha_hora_fin > :fecha_hora_inicio "
+            "LIMIT 1"
+        ),
+        {
+            "cancha_id": cancha_id,
+            "fecha_hora_inicio": fecha_hora_inicio,
+            "fecha_hora_fin": fecha_hora_fin,
+        },
+    )
+    return result.first() is not None
+
+
+def has_socio_overlap(
+    connection,
+    socio_id,
+    fecha_hora_inicio,
+    fecha_hora_fin,
+):
+    result = connection.execute(
+        text(
+            "SELECT 1 FROM reservas "
+            "WHERE id_socio = :socio_id "
+            "AND estado = 'confirmada' "
+            "AND fecha_hora_inicio < :fecha_hora_fin "
+            "AND fecha_hora_fin > :fecha_hora_inicio "
+            "LIMIT 1"
+        ),
+        {
+            "socio_id": socio_id,
+            "fecha_hora_inicio": fecha_hora_inicio,
+            "fecha_hora_fin": fecha_hora_fin,
+        },
+    )
+    return result.first() is not None
+
+
+def has_bloqueo_overlap(
+    connection,
+    cancha_id,
+    fecha_hora_inicio,
+    fecha_hora_fin,
+):
+    result = connection.execute(
+        text(
+            "SELECT 1 FROM bloqueos "
+            "WHERE id_cancha = :cancha_id "
+            "AND TIMESTAMP(fecha, hora_inicio) < :fecha_hora_fin "
+            "AND TIMESTAMP(fecha, hora_fin) > :fecha_hora_inicio "
+            "LIMIT 1"
+        ),
+        {
+            "cancha_id": cancha_id,
+            "fecha_hora_inicio": fecha_hora_inicio,
+            "fecha_hora_fin": fecha_hora_fin,
+        },
+    )
+    return result.first() is not None
+
+
+def update_reserva_state(connection, reserva_id, estado):
+    result = connection.execute(
+        text(
+            "UPDATE reservas SET estado = :estado "
             "WHERE id = :reserva_id"
         ),
-        params,
+        {"estado": estado, "reserva_id": reserva_id},
     )
     return result.rowcount
 
-#Aca listamos las reservas por el id de la cancha, el id del socio, el estado y las fechas del inicio y final de la reserva
-def list_all_reservas(connection, id_socio , id_cancha ,estado, fecha_desde, fecha_hasta, limit, offset):
+
+def list_all_reservas(
+    connection,
+    id_socio,
+    id_cancha,
+    estado,
+    fecha_desde,
+    fecha_hasta,
+    limit,
+    offset,
+):
     conditions = []
     params = {}
 
-    
     if id_cancha is not None:
         conditions.append("id_cancha = :id_cancha")
         params["id_cancha"] = id_cancha
@@ -64,13 +163,11 @@ def list_all_reservas(connection, id_socio , id_cancha ,estado, fecha_desde, fec
     if fecha_desde is not None:
         conditions.append("fecha_hora_inicio >= :fecha_desde")
         params["fecha_desde"] = fecha_desde
-
     if fecha_hasta is not None:
         conditions.append(
             "fecha_hora_inicio < DATE_ADD(:fecha_hasta, INTERVAL 1 DAY)"
         )
         params["fecha_hasta"] = fecha_hasta
-
 
     where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
     count_result = connection.execute(
@@ -87,36 +184,4 @@ def list_all_reservas(connection, id_socio , id_cancha ,estado, fecha_desde, fec
         ),
         list_params,
     )
-    reservas = result.mappings().all()
-
-    return reservas, count_row["total"]
-
-#obtiene los detalles de una reserva especifica por su id.
-#Retoma un diccionario con los detalles de una reserva especifica por su id
-def get_reserva_by_id(connection, reserva_id: int):
-    cursor = connection.cursor(dictionary=True)
-    try:
-        query = """
-            SELECT
-                r.id,
-                r.id_socio,
-                r.fecha,
-                r.hora_inicio,
-                r.hora_fin,
-                r.estado,
-                r.tarifa_historica,
-                r.importe_total
-            FROM reservas r
-            WHERE r.id = %s
-        """
-        cursor.execute(query, (reserva_id,))
-        return cursor.fetchome()
-    finally:
-        cursor.close()
-
-#Obtenemos todas las reservas 
-def get_reservas(connection):
-    result = connection.execute(
-        text("SELECT * FROM reservas")
-    )
-    return result.mappings().all()
+    return result.mappings().all(), count_row["total"]
