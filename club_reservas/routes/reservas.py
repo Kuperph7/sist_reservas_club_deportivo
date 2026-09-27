@@ -1,5 +1,7 @@
 # Esto expone las operaciones obligatorias de reservas.
-from flask import Blueprint
+from flask import Blueprint, jsonify
+from club_reservas.db import get_db_connection
+from club_reservas.db.services import reservas as reservas_service
 
 
 reservas_bp = Blueprint("reservas", __name__)
@@ -17,10 +19,14 @@ def crear_reserva():
 
 @reservas_bp.get("/reservas/<int:id_reserva>")
 def obtener_reserva(id_reserva):
-    return {
-        "message": "GET /reservas/{id}",
-        "id": id_reserva
-    }, 200
+    connection = get_db_connection()
+    try:
+        reserva = reservas_service.obtener_reserva_por_id(connection, id_reserva)
+        return jsonify(reserva), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    finally:
+        conenection.close()
 
 
 @reservas_bp.put("/reservas/<int:id_reserva>/estado")

@@ -1,6 +1,6 @@
 from club_reservas.repositories.socios import get_socio_by_id
 from club_reservas.repositories.canchas import get_cancha_by_id
-from club_reservas.repositories.reservas import (get_reservas,create_reserva)
+from club_reservas.repositories.reservas import (get_reservas,create_reserva, get_reserva_by_id)
 
 
 def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_fin):
@@ -68,3 +68,9 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
         "precio_hora": precio_hora,
         "precio_total": precio_total,
     }
+
+def obtener_reserva_por_id(connection, reserva_id: int):
+    reserva = get_reserva_by_id(connection, reserva_id)
+    if reserva is None:
+        raise ValueError("La reserva no existe")
+        return reserva
