@@ -45,6 +45,35 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
             f"La cancha con id:{id_cancha} no esta activa"
         )
 
+    #Validacion horario despues del mismo de la request
+
+    ahora = datetime.now(fecha_hora_inicio.tzinfo)
+
+    if fecha_hora_inicio <= ahora:
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflicto de negocio",
+            "La reserva debe comenzar después del momento de la solicitud"
+        )
+    
+    #Validacion horarios en punto
+    if fecha_hora_inicio.minute != 0 or fecha_hora_inicio.second != 0 or fecha_hora_inicio.microsecond != 0:
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflicto de negocio",
+            "La hora de inicio debe ser en punto"
+    )
+
+    if fecha_hora_fin.minute != 0 or fecha_hora_fin.second != 0 or fecha_hora_fin.microsecond != 0:
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflicto de negocio",
+            "La hora de fin debe ser en punto"
+        )
+    
     #Validacion duracion entre 1 y 3 horas
     duracion = fecha_hora_fin - fecha_hora_inicio
     horas = duracion.total_seconds() / 3600
@@ -76,27 +105,41 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
         )
     reservas = get_reservas(connection)
 
-    #Evaluacion de superposicion horaria misma cancha
-    #Falta evaluar superposicion horaria en otras canchas
+    #Evaluacion de superposicion horaria 
     for reserva in reservas:
 
-        if reserva["id_cancha"] != id_cancha:
-            continue
+            if reserva["estado"] != "confirmada":
+                continue
 
-        if reserva["estado"] != "confirmada":
-            continue
+            inicio_reserva = reserva["fecha_hora_inicio"]
+            fin_reserva = reserva["fecha_hora_fin"]
 
-        inicio_reserva = reserva["fecha_hora_inicio"]
-        
-        fin_reserva = reserva["fecha_hora_fin"]
+            # La cancha ya está ocupada
+            if reserva["id_cancha"] == id_cancha:
+                if (
+                    fecha_hora_inicio < fin_reserva
+                    and fecha_hora_fin > inicio_reserva
+                ):
+                    raise ApiError(
+                        409,
+                        "CANCHA_NO_DISPONIBLE",
+                        "Conflicto de negocio",
+                        "La cancha ya está reservada en ese horario"
+                    )
 
-        if (fecha_hora_inicio < fin_reserva and fecha_hora_fin > inicio_reserva):
-            raise ApiError(
-            409,
-            "HORARIO_INVALIDO",
-            "Conflico de negocio",
-            "La cancha ya está reservada en ese horario"
-        )
+            # El socio ya tiene otra reserva
+            if reserva["id_socio"] == id_socio:
+                if (
+                    fecha_hora_inicio < fin_reserva
+                    and fecha_hora_fin > inicio_reserva
+                ):
+                    raise ApiError(
+                        409,
+                        "SOCIO_NO_DISPONIBLE",
+                        "Conflicto de negocio",
+                        "El socio ya tiene una reserva en ese horario"
+                    )
+
 
     #Calculo del precio
     precio_hora = cancha["precio_hora"]
@@ -125,20 +168,73 @@ def obtener_reserva_por_id(connection, reserva_id: int):
         return reserva
 
 #Actualizar el estado de la reserva / Put reservas id 
-def actualizar_estado(connection,id_reserva, estado_solicitado):
-    reserva= get_reserva_by_id(connection,id_reserva)
-    #Habria que hacer una funcion que valide la existencia de la reserva? 
-    permitir = False 
+def actualizar_estado(connection, id_reserva, estado_solicitado):
+
+    reserva = get_reserva_by_id(connection, id_reserva)
+
+    # La reserva debe existir
+    if reserva is None:
+        raise ApiError(
+            404,
+            "RESERVA_NO_ENCONTRADA",
+            "Recurso no encontrado",
+            f"No existe una reserva con id {id_reserva}"
+        )
+
+    # El estado solicitado debe ser válido
+    estados_validos = ("confirmada", "cancelada", "finalizada")
+
+    if estado_solicitado not in estados_validos:
+        raise ApiError(
+            400,
+            "ESTADO_INVALIDO",
+            "Datos inválidos",
+            f"El estado {estado_solicitado} no es válido"
+        )
 
     estado_actual = reserva["estado"]
 
+    # Si ya tiene ese estado
     if estado_actual == estado_solicitado:
         return "exito"
 
-    if estado_actual == "confirmada" and (estado_solicitado == "cancelada" or estado_solicitado == "finalizada"): 
-        permitir = True
+    ahora = datetime.now(reserva["fecha_hora_inicio"].tzinfo)
+
+    # Confirmada → cancelada
+    if estado_actual == "confirmada" and estado_solicitado == "cancelada":
+
+        if ahora >= reserva["fecha_hora_inicio"]:
+            raise ApiError(
+                409,
+                "CANCELACION_NO_PERMITIDA",
+                "Conflicto de negocio",
+                "No se puede cancelar una reserva que ya comenzó"
+            )
+
+    # Confirmada → finalizada
+    elif estado_actual == "confirmada" and estado_solicitado == "finalizada":
+
+        if ahora < reserva["fecha_hora_fin"]:
+            raise ApiError(
+                409,
+                "FINALIZACION_NO_PERMITIDA",
+                "Conflicto de negocio",
+                "No se puede finalizar una reserva que todavía no terminó"
+            )
+
+    # Cualquier otra transición
     else:
-        return "no permitido"
+        raise ApiError(
+            409,
+            "CAMBIO_ESTADO_NO_PERMITIDO",
+            "Conflicto de negocio",
+            f"No se puede cambiar el estado de {estado_actual} a {estado_solicitado}"
+        )
 
-    if permitir: update_reserva(connection, id_reserva, estado_solicitado)
+    update_reserva(
+        connection,
+        id_reserva,
+        estado_solicitado
+    )
 
+    return "exito"

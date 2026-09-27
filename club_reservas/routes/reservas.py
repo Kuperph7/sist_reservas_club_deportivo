@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify
 from club_reservas.db import get_db_connection
 from club_reservas.db.services import reservas as reservas_service
-
+from club_reservas.validators.reservas import (validate_create, validate_update)
 
 reservas_bp = Blueprint("reservas", __name__)
 
@@ -18,6 +18,8 @@ def crear_reserva():
 
     try:
         data = request.get_json()
+
+        data = validate_create(data)
         
         reserva = generar_reserva(
             connection,
@@ -51,11 +53,13 @@ def actualizar_estado_reserva(id_reserva):
 
     try:
         data = request.get_json()
+        
+        data = validate_update(data)
 
         actualizar_estado(
             connection,
             id_reserva,
-            data
+            data["Estado"]
         )
 
         return {
