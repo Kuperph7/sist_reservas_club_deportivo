@@ -3,9 +3,13 @@ from club_reservas.repositories.canchas import get_cancha_by_id
 from club_reservas.repositories.reservas import (get_reservas,create_reserva, get_reserva_by_id)
 
 
+#Crear la reserva / Post Reservas
 def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_fin):
     socio = get_socio_by_id(connection, id_socio)
 
+    fecha_hora_inicio = datetime.isoformat(fecha_hora_inicio)
+    fecha_hora_fin = datetime.isoformat(fecha_hora_fin)
+    
     #Validaciones de socio
     if socio is None:
         raise ValueError("El socio no existe")
@@ -51,7 +55,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
     precio_hora = cancha["precio_hora"]
 
     duracion = fecha_hora_fin - fecha_hora_inicio
-    horas = duracion / 3600
+    horas = duracion.total_seconds() / 3600
 
     precio_total = int(precio_hora * horas)
 
