@@ -47,6 +47,18 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
             f"La cancha con id:{id_cancha} no esta activa"
         )
 
+    #Validacion de horarios
+    duracion = fecha_hora_fin - fecha_hora_inicio
+    horas = duracion.total_seconds() / 3600
+
+    if horas < 1 or horas > 3:
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflico de negocio",
+            f"La duracion de la reserva tiene que ser entre 1 y 3 horas"
+        )
+
     if fecha_hora_inicio >= fecha_hora_fin:
         raise ApiError(
             409,
@@ -82,9 +94,6 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
     #Calculo del precio
     precio_hora = cancha["precio_hora"]
 
-    duracion = fecha_hora_fin - fecha_hora_inicio
-    horas = duracion.total_seconds() / 3600
-
     precio_total = int(precio_hora * horas)
 
     #Creacion de la reserva (create_reserva() debe devolver el id creado)
@@ -105,7 +114,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
 def actualizar_estado(connection,id_reserva, estado_solicitado):
     reserva= get_reserva_by_id(connection,id_reserva)
 
-    #Habria que hacer una funcion que valide la existencia de la reserva? 
+    
     permitir = False 
 
     estado_actual = reserva["estado"]
