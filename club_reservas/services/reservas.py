@@ -74,6 +74,15 @@ def generar_reserva(
             f"La cancha con id {id_cancha} no está activa",
         )
 
+    now = datetime.now(GMT_MINUS_3).replace(tzinfo=None)
+    if fecha_hora_inicio <= now:
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflicto de negocio",
+            "La reserva debe comenzar después del momento de la solicitud",
+        )
+
     duration = fecha_hora_fin - fecha_hora_inicio
     duration_seconds = Decimal(str(duration.total_seconds()))
     if duration_seconds < 3600 or duration_seconds > 10800:
