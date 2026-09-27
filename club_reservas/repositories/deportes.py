@@ -1,9 +1,13 @@
 from sqlalchemy import text
 
-#Agarramos el deporte por su id para ver todos sus datos
-def get_deporte_by_id(connection, deporte_id):
+#Listamos los deportes de esta manera ya que no nos piden paginacion ni filtros para ellos
+def list_all_deportes(connection):
     result = connection.execute(
-        text("SELECT * FROM deportes WHERE id = :deporte_id"),
-        {"deporte_id": deporte_id},
+        text(
+            "SELECT id, nombre "
+            "FROM deportes "
+            "ORDER BY id ASC"
+        )
     )
-    return result.mappings().first()
+
+    return result.mappings().all()
