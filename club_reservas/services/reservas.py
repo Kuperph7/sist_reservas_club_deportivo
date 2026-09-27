@@ -1,11 +1,15 @@
 from club_reservas.repositories.socios import get_socio_by_id
 from club_reservas.repositories.canchas import get_cancha_by_id
-from club_reservas.repositories.reservas import (get_reservas,create_reserva)
+from club_reservas.repositories.reservas import (get_reservas,create_reserva,get_reserva_by_id,update_reserva)
+from datetime import datetime
 
-
+#Crear la reserva / Post Reservas
 def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_fin):
     socio = get_socio_by_id(connection, id_socio)
 
+    fecha_hora_inicio = datetime.isoformat(fecha_hora_inicio)
+    fecha_hora_fin = datetime.isoformat(fecha_hora_fin)
+    
     #Validaciones de socio
     if socio is None:
         raise ValueError("El socio no existe")
@@ -51,7 +55,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
     precio_hora = cancha["precio_hora"]
 
     duracion = fecha_hora_fin - fecha_hora_inicio
-    horas = duracion / 3600
+    horas = duracion.total_seconds() / 3600
 
     precio_total = int(precio_hora * horas)
 
@@ -68,3 +72,22 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
         "precio_hora": precio_hora,
         "precio_total": precio_total,
     }
+
+#Actualizar el estado de la reserva / Put reservas id 
+def actualizar_estado(connection,id_reserva, estado_solicitado):
+    reserva= get_reserva_by_id(connection,id_reserva)
+    #Habria que hacer una funcion que valide la existencia de la reserva? 
+    permitir = False 
+
+    estado_actual = reserva["estado"]
+
+    if estado_actual == estado_solicitado:
+        return "exito"
+
+    if estado_actual == "confirmada" and (estado_solicitado == "cancelada" or estado_solicitado == "finalizada"): 
+        permitir = True
+    else:
+        return "no permitido"
+
+    if permitir: update_reserva(connection, id_reserva, estado_solicitado)
+
