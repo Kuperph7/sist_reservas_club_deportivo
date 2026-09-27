@@ -1,13 +1,7 @@
 from club_reservas.repositories.socios import get_socio_by_id
 from club_reservas.repositories.canchas import get_cancha_by_id
-<<<<<<< HEAD
 from club_reservas.repositories.reservas import (get_reservas,create_reserva, get_reserva_by_id)
 
-=======
-from club_reservas.repositories.reservas import (get_reservas,create_reserva,get_reserva_by_id,update_reserva)
-from datetime import datetime
-from club_reservas.exeptions import ApiError
->>>>>>> 21bbd70cd3f1a242f63762ab4fb6d646ac298764
 
 #Crear la reserva / Post Reservas
 def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_fin):
@@ -106,30 +100,8 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
         "precio_total": precio_total,
     }
 
-<<<<<<< HEAD
 def obtener_reserva_por_id(connection, reserva_id: int):
     reserva = get_reserva_by_id(connection, reserva_id)
     if reserva is None:
         raise ValueError("La reserva no existe")
         return reserva
-=======
-#Actualizar el estado de la reserva / Put reservas id 
-def actualizar_estado(connection,id_reserva, estado_solicitado):
-    reserva= get_reserva_by_id(connection,id_reserva)
-
-    #Habria que hacer una funcion que valide la existencia de la reserva? 
-    permitir = False 
-
-    estado_actual = reserva["estado"]
-
-    if estado_actual == estado_solicitado:
-        return "exito"
-
-    if estado_actual == "confirmada" and (estado_solicitado == "cancelada" or estado_solicitado == "finalizada"): 
-        permitir = True
-    else:
-        return "no permitido"
-
-    if permitir: update_reserva(connection, id_reserva, estado_solicitado)
-
->>>>>>> 21bbd70cd3f1a242f63762ab4fb6d646ac298764

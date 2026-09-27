@@ -91,7 +91,6 @@ def list_all_reservas(connection, id_socio , id_cancha ,estado, fecha_desde, fec
 
     return reservas, count_row["total"]
 
-<<<<<<< HEAD
 
 #obtiene los detalles de una reserva especifica por su id.
 #Retoma un diccionario con los detalles de una reserva especifica por su id
@@ -115,11 +114,3 @@ def get_reserva_by_id(connection, reserva_id: int):
         return cursor.fetchome()
     finally:
         cursor.close()
-=======
-#Obtenemos todas las reservas 
-def get_reservas(connection):
-    result = connection.execute(
-        text("SELECT * FROM reservas")
-    )
-    return result.mappings().all()
->>>>>>> 21bbd70cd3f1a242f63762ab4fb6d646ac298764
