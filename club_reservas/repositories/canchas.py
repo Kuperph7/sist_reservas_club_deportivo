@@ -84,11 +84,14 @@ def list_all_canchas(connection, nombre, activa, id_deporte, techada, limit, off
 
     return canchas, count_row["total"]
 
-#Aca listamos las canchas que no tengan reservas durante el horario que ingrese el usuario
-def consulta_disponibilidad(connection, fecha_hora_inicio, fecha_hora_fin, id_deporte, limit, offset):
+#Aca listamos las canchas que no tengan reservas durante un horario especifico
+def consulta_disponibilidad(connection, fecha, fecha_hora_inicio, fecha_hora_fin, id_deporte, limit, offset):
     conditions = []
     params = {}
 
+    conditions.append("fecha = :fecha")
+    params["fecha"] = fecha
+    
     conditions.append("fecha_hora_inicio >= :fecha_hora_inicio")
     params["fecha_hora_inicio"] = fecha_hora_inicio
 
