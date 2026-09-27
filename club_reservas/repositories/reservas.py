@@ -90,3 +90,10 @@ def list_all_reservas(connection, id_socio , id_cancha ,estado, fecha_desde, fec
     reservas = result.mappings().all()
 
     return reservas, count_row["total"]
+
+#Obtenemos todas las reservas 
+def get_reservas(connection):
+    result = connection.execute(
+        text("SELECT * FROM reservas")
+    )
+    return result.mappings().all()
