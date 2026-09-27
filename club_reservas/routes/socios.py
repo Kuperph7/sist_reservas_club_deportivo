@@ -1,4 +1,6 @@
 # Esto expone las operaciones obligatorias de socios.
+from urllib.parse import urlencode
+
 from club_reservas.db import engine
 
 from flask import Blueprint, jsonify, request
@@ -7,14 +9,14 @@ from club_reservas.services.socios import (
     crear_socio,
     list_socios,
     get_socio,
-    update_socio
+    actualizar_socio
 )
 from club_reservas.validators.socios import (
     validate_create,
     validate_update,
     validate_list
 )
-from club_reservas.validators.socios import (
+from club_reservas.validators.common import (
     require_json_object
 )
 
@@ -28,7 +30,53 @@ def listar_socios():
     try:
         filters = validate_list(request.args)
         socios, total = list_socios(connection, filters)
-        return jsonify({"socios": socios, "total": total}), 200
+
+        limit = filters["_limit"]
+        offset = filters["_offset"]
+        last_offset = 0 if total == 0 else ((total - 1) // limit) * limit
+        params = request.args.to_dict(flat=True)
+
+        first_params = {
+            **params,
+            "_offset": 0,
+            "_limit": limit,
+        }
+        last_params = {
+            **params,
+            "_offset": last_offset,
+            "_limit": limit,
+        }
+
+        links = {
+            "_first": {
+                "href": f"{request.base_url}?{urlencode(first_params)}"
+            },
+            "_last": {
+                "href": f"{request.base_url}?{urlencode(last_params)}"
+            },
+        }
+
+        if offset > 0:
+            previous_params = {
+                **params,
+                "_offset": max(0, offset - limit),
+                "_limit": limit,
+            }
+            links["_prev"] = {
+                "href": f"{request.base_url}?{urlencode(previous_params)}"
+            }
+
+        if offset + limit < total:
+            next_params = {
+                **params,
+                "_offset": offset + limit,
+                "_limit": limit,
+            }
+            links["_next"] = {
+                "href": f"{request.base_url}?{urlencode(next_params)}"
+            }
+
+        return jsonify({"socios": socios, "_links": links}), 200
     finally:
         connection.close()
 
@@ -40,7 +88,7 @@ def create_socio():
     try:
         data = validate_create(require_json_object(request))
         socio_id = crear_socio(connection, data["nombre"], data["email"])
-        return jsonify({"id": socio_id}), 201
+        return "", 201
     finally:
         connection.close()
     
@@ -57,11 +105,11 @@ def obtener_socio(id_socio):
 
 
 @socios_bp.patch("/socios/<int:id_socio>")
-def actualizar_socio(id_socio):
+def update_socio(id_socio):
     connection = engine.connect()
     try:
         data = validate_update(require_json_object(request))
-        update_socio(connection, id_socio, data)
+        actualizar_socio(connection, id_socio, data)
         return "", 204
     finally:
         connection.close()
