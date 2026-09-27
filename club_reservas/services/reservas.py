@@ -1,15 +1,14 @@
 from club_reservas.repositories.socios import get_socio_by_id
 from club_reservas.repositories.canchas import get_cancha_by_id
 from club_reservas.repositories.reservas import (get_reservas,create_reserva, get_reserva_by_id,update_reserva)
-from datetime import datetime
+from datetime import (datetime, time)
+from club_reservas.exeptions import ApiError
+
 
 #Crear la reserva / Post Reservas
 def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_fin):
     socio = get_socio_by_id(connection, id_socio)
 
-    fecha_hora_inicio = datetime.isoformat(fecha_hora_inicio)
-    fecha_hora_fin = datetime.isoformat(fecha_hora_fin)
-    
     #Validaciones de socio
     if socio is None:
         raise ApiError(
@@ -46,7 +45,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
             f"La cancha con id:{id_cancha} no esta activa"
         )
 
-    #Validacion de horarios
+    #Validacion duracion entre 1 y 3 horas
     duracion = fecha_hora_fin - fecha_hora_inicio
     horas = duracion.total_seconds() / 3600
 
@@ -58,6 +57,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
             f"La duracion de la reserva tiene que ser entre 1 y 3 horas"
         )
 
+    #Validacion inicio anterior al fin 
     if fecha_hora_inicio >= fecha_hora_fin:
         raise ApiError(
             409,
@@ -66,9 +66,18 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
             "La fecha de inicio debe ser anterior a la fecha de fin"
         )
 
+    #Validacion horario entre 8:00 y 23:00
+    if fecha_hora_inicio.time() < time(8, 0) or fecha_hora_fin.time() > time(23, 0):
+        raise ApiError(
+            409,
+            "HORARIO_INVALIDO",
+            "Conflicto de negocio",
+            "El horario de la reserva debe estar entre las 08:00 y 23:00 horas"
+        )
     reservas = get_reservas(connection)
 
-    #Evaluacion de superposicion horaria
+    #Evaluacion de superposicion horaria misma cancha
+    #Falta evaluar superposicion horaria en otras canchas
     for reserva in reservas:
 
         if reserva["id_cancha"] != id_cancha:
@@ -108,6 +117,7 @@ def generar_reserva(connection,id_socio,id_cancha,fecha_hora_inicio,fecha_hora_f
         "precio_total": precio_total,
     }
 
+#Obtener la reserva por la id 
 def obtener_reserva_por_id(connection, reserva_id: int):
     reserva = get_reserva_by_id(connection, reserva_id)
     if reserva is None:
@@ -131,3 +141,4 @@ def actualizar_estado(connection,id_reserva, estado_solicitado):
         return "no permitido"
 
     if permitir: update_reserva(connection, id_reserva, estado_solicitado)
+
