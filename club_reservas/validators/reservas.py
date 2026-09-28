@@ -72,6 +72,16 @@ def validate_create(data):
     end = _datetime_gmt3(data["fecha_hora_fin"], "fecha_hora_fin")
     if start >= end:
         validation_error("'fecha_hora_inicio' debe ser anterior a 'fecha_hora_fin'")
+    if start.date() != end.date():
+        validation_error("La reserva debe comenzar y terminar en el mismo día")
+    if any(
+        value != 0
+        for moment in (start, end)
+        for value in (moment.minute, moment.second, moment.microsecond)
+    ):
+        validation_error(
+            "'fecha_hora_inicio' y 'fecha_hora_fin' deben ser horas en punto"
+        )
 
     return {
         "id_socio": _positive_integer(data["id_socio"], "id_socio"),

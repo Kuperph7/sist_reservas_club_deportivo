@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import current_app, jsonify
 
 
 # Excepción personalizada utilizada por validators y services.
@@ -53,7 +53,22 @@ def handle_api_error(error):
         error.level,
     )
 
+
+# Maneja los errores inesperados
+def handle_unexpected_error(error):
+    current_app.logger.exception(
+        "Error no controlado",
+        exc_info=error,
+    )
+    return error_response(
+        500,
+        "ERROR_INTERNO",
+        "Error interno del servidor",
+        "Ocurrió un error inesperado al procesar la solicitud",
+    )
+
+
 # Le indica a Flask qué hacer cuando se lanza ApiError
 def register_error_handlers(app):
     app.register_error_handler(ApiError, handle_api_error)
-    
+    app.register_error_handler(500, handle_unexpected_error)
